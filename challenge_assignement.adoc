@@ -1,0 +1,112 @@
+= Take Home Assignment: Extending Host APIs Spec
+
+Estimated time required: 3-4 hours
+
+== Description 
+
+The Polkadot Protocol utilizes a special *WASM runtime* that implements a large part of Polkadot's *core logic* in an upgradable format. This runtime is therefore provided with various functionalities by the Polkadot Host described by the so-called https://spec.polkadot.network/#chap-host-api[Host API].
+
+For this exercise, we will be *extending the Offchain Index API*, an interface that provides functions to access the Offchain Database.  https://github.com/paritytech/substrate[Substrate] already contains few API related to _offchain index_ as part of its _I/O host interface_ which are not yet documented in the  https://spec.polkadot.network/[Spec]. Your task is to identify these APIs and write their spec. You can use the same template as the rest of the Host API to write the Spec. 
+
+TIP: Knowledge of procedural macros in rust might be useful for this task. 
+
+NOTE: Along with the solution, we would love to read about your thought process and approaches taken in tackling the problem. The task is designed to be open-ended with a certain degree of uncertainty in the description, to reflect some of the challenges in Spec team. However, for any clarifications, please feel free to contact bhargav@web3.foundation or @bhargav:web3.foundation
+
+
+== Identifying goals
+
+* extend the Offchain Index API (the API that provides functions to access the Offchain Database)
+* Substrate already contains few API related to _offchain index_ 
+** These are part of Substrate's _I/O host interface_ , and they are not yet documented in the https://spec.polkadot.network/[Spec]
+* Task: Identify these APIs that are not yet documented and write their spec.
+** use the same template as the rest of the Host API to do it
+
+
+NOTE: At first sight it sounds more like identifying what was made in the code and trying to put it formally in the documentation. It sounds like the reverse order to me. As far I had understood so far the design definition should come from the research team, the specification defined from the design and then used by developers to implement. The description so far sounds like in the reverse path. Let me start some readings to clarify this. 
+
+=== To clarify
+
+As far as I understood from our discussion other that. The specification team get the output from the research team and turns it into a specification to developers to make use of it to code the solutions. The main goal of this exercice (challenge) is to do the reverse path. In other words, look at the code and turn it into a specification. Is this correct ? 
+
+== Steps 
+
+. Brief overview of Polkadot Protocol Specification by using the document published at https://spec.polkadot.network/
+.. Particularly check the doc to see how the Storage speficication is currently done: `Appendix B: Host API` and `B.2 B.2. Storage`.
+. Take a first look at Substrate documentation : https://docs.substrate.io/. Special attention at sessions `Substrate - Arquitecture` and `Substrate - Offchain operations`.
+
+.. 1st question raised : The archictecure description sounds a bit contradictory when It says that _*offchain indexing is* an optional *service* that allows the runtime to write directly to the offchain storage *independently from* offchain workers_. However, it seems that the `Offchain workers` can also access the `offchain indexing`. Not clear yet to me if it is a contradiction or a misunderstanding from my side. To be clarified as I read more about it. 
+
+. Downloaded substrate code from  https://github.com/paritytech/substrate  
+
+.. Look at the code, checking for api concerning offchain storage, special attention for `offchain indexing`. 
+... Some interesting pointer found and highlighed below at link:#code_checking[Code checking]
+
+
+. Check the Storage template for the Host API
+.. download template and adapt it to the `Offchain Index API`
+
+
+
+[#code-checking]
+== Code checking 
+
+ 
+Possible definitions/declarations are found here. 
+
+- pub trait *OffchainIndex*: `substrate/primitives/io/src/lib.rs`
+
+- pub trait *OffchainStorage*: `substrate/primitives/core/src/offchain/mod.rs`
+
+- *offchain workers*: `substrate/client/offchain/src/lib.rs` and `substrate/primitives/core/src/offchain/mod.rs`
+
+- The Substrate *externalities*. Provides access to the storage and to other registered extensions: `substrate/primitives/externalities/src/lib.rs`
+
+- offchain database (*OffchainDbExt*): `substrate/primitives/core/src/offchain/mod.rs`
+                            
+
+
+== Main finding: OffchainIndex interface 
+
+- at: I/O host interface for substrate runtime 
+
+----
+/// Interface that provides functions to access the Offchain DB.
+#[runtime_interface]
+pub trait OffchainIndex {
+	/// Write a key value pair to the Offchain DB database in a buffered fashion.
+	fn set(&mut self, key: &[u8], value: &[u8]) {
+		self.set_offchain_storage(key, Some(value));
+	}
+
+	/// Remove a key and its associated value from the Offchain DB.
+	fn clear(&mut self, key: &[u8]) {
+		self.set_offchain_storage(key, None);
+	}
+}
+----
+
+
+== Questions:
+
+
+- is the main objective mentioned above right? 
+- is it only specifying the functions declared in the OffchainIndex trait ?  (set and clear)
+
+- why the `Storage trait` functions are declared in the code as (for instance) 'set' and 'get', and in the specification the same functions are called `ext_storage_set` and `ext_storage_get` ?  Why this 'ext_storage' prefix ? 
+
+- in the declaration of functions in the `Storage section B.2`, the functions have a `versionX - prototype` information. even though their code in the `Storage trait` does not mention 'versions'. is it a convention always declaring a version? if so, where it is defined this 'version' convention? 
+
+- the 'storage specification' at B2. declares the key and value parameters as 'Runtime pointer-size type' which is an 'unsigned 64-bit integer'. However in the code it is defined as a 'u8' data type (8-bit unsigned integer). which one is right ? the 'OffchainIndex' trait also uses u8 in the code. 
+
+
+== Candidate Solution 
+
+
+include::offchain_indexing.adoc[]
+
+
+
+== Appendix
+
+
+include::substrate_notes.adoc[]

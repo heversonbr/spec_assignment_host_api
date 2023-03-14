@@ -1,0 +1,125 @@
+== Notes on Substrate documentation
+
+NOTE: these notes contain copy/paste of relevante information from the original documentation. And I'm using it as a reminder. 
+
+* Substrate is a SDK  designed to provide all the fundamental components a blockchain requires.
+
+* Substrate allows you to create specialized blockchains for any use case, and was used by Parity Technologies to create Polkadot itself.
+
+* Substrate can be used to build any type of blockchain, not just Polkadot parachains, connecting to Polkadot offers a multitude of benefits, including built-in security, cross-chain interoperability.
+
+* Polkadot and Substrate are not dependent on each other. Polkadot parachains can be built and maintained without ever touching Substrate and chains built with Substrate do not need to be connected to Polkadot. Substrate-based chains can exist as ‘solo-chains’ on an independent basis.
+
+=== Architecture 
+
+Ref: https://docs.substrate.io/fundamentals/architecture/[substrate architecture]
+
+At a high level, a Substrate node provides a layered environment with two main elements:
+
+* A *client with outer node services* that handles network activity such as peer discovery, managing transaction requests, reaching consensus with peers, and responding to RPC calls.
+* A *runtime* that contains all of the business logic for executing the state transition function of the blockchain.
+
+==== Outer node
+
+Some of the most important activities that are handled by the *outer node* involve the following components:
+
+* *Storage*: The outer node persists the evolving state of a Substrate blockchain using a simple and highly efficient key-value storage layer.
+* *Peer-to-peer networking*: The outer node uses the Rust implementation of the libp2p network stack to communicate with other network participants.
+* *Consensus*: The outer node communicates with other network participants to ensure they agree on the state of the blockchain.
+* *Remote procedure call (RPC) API*: The outer node accepts inbound HTTP and WebSocket requests to allow blockchain users to interact with the network.
+* *Telemetry*: The outer node collects and provides access to node metrics through an embedded Prometheus server.
+* *Execution environment*: The outer node is responsible for selecting the execution environment—WebAssembly or native Rust—for the runtime to use then dispatching calls to the runtime selected.
+
+Performing these tasks often requires the outer node to query the runtime for information or to provide information to the runtime. This communication is handled by calling specialized runtime https://docs.substrate.io/reference/runtime-apis/[APIs].
+
+NOTE: a little goal reminder: We are looking for extending the Offchain Index API, the interface that provides functions to access the Offchain Database. 
+Therefore, according to the architecure definition, it may be somewhere on the Storage session. 
+
+==== Runtime
+
+The *runtime* determines whether transactions are valid or invalid and is _responsible for handling changes to the blockchain's state_.
+
+The *runtime* controls how transactions are included in blocks and how blocks are returned to the *outer node* for gossiping or importing to other nodes. In essence, the *runtime* is responsible for handling *everything that happens on-chain*.
+It is also the core component of the node for building Substrate blockchains.
+
+The Substrate runtime is designed to compile to WebAssembly (Wasm) byte code. This design decision enables:
+* Support for forkless upgrades.
+* Multi-platform compatibility.
+* Runtime validity checking.
+* Validation proofs for relay chain consensus mechanisms.
+
+Ref: https://paritytech.github.io/substrate/master/sp_api/index.html[Substrate Runtime API]
+
+
+=== Outer node : STORAGE
+
+Substrate uses a simple *key-value data store* implemented as a database-backed, modified Merkle tree. All of Substrate's higher-level storage abstractions are built on top of this simple key-value store.
+
+==== Key-Value database
+
+Substrate implements its storage database with *RocksDB*, a persistent key-value store for fast storage environments. It also supports an experimental *Parity DB*.
+
+The DB is used for all the components of Substrate that require persistent storage, such as:
+
+* Substrate clients
+* Substrate light-clients
+* Off-chain workers
+
+This ref: https://docs.substrate.io/fundamentals/state-transitions-and-storage/#querying-storage[State transitions and storage] presents how Substrate uses storage abstractions to provide read and write access to the underlying key-value database.
+
+The module implementation is here: https://paritytech.github.io/substrate/master/frame_support/storage/[Module frame_support::storage]
+
+Code(?):
+https://github.com/paritytech/substrate/blob/master/primitives/storage/src/lib.rs[Primitive types for storage related stuff]
+
+
+
+=== *Offchain operations*
+
+There are many use cases where you might want to query data from an offchain source or process data without using on-chain resources before updating the on-chain state. The conventional way of incorporating offchain data involves connecting to oracles to supply the data from some traditional source. Although using oracles is one approach to working with offchain data sources, there are limitations to the security, scalability, and infrastructure efficiency that oracles can provide.
+
+To make the offchain data integration more secure and efficient, Substrate supports offchain operations through the following features:
+
+* *Offchain workers* are a subsystem of components that enable the execution of long-running and possibly non-deterministic tasks.
+Offchain workers enable you to move tasks that might require more time to execute than allowed out of the block processing pipeline. Any task that might take longer than the maximum block execution time allowed is a reasonable candidate for offchain processing. 
++
+Ref: https://github.com/paritytech/substrate/blob/master/primitives/core/src/offchain/mod.rs[Offchain workers types]
++
+https://github.com/paritytech/substrate/blob/master/primitives/offchain/src/lib.rs[The Offchain Worker runtime api primitives.]
++
+https://github.com/paritytech/substrate/blob/master/client/db/src/offchain.rs[RocksDB-based offchain workers local storage.]
+
+
+* *Offchain storage* is storage that is local to a Substrate node and can be *accessed by* both *offchain workers and on-chain logic*:
+** Offchain workers have both read and write access to offchain storage.
+** *On-chain logic has write access through offchain indexing* but doesn't have read access. The offchain storage allows different worker threads to communicate with each other and to store user-specific or node-specific data that does not require consensus over the whole network.
++
+Ref: https://github.com/paritytech/substrate/blob/master/primitives/core/src/offchain/storage.rs[In-memory implementation of offchain workers database - OffchainStorage for InMemOffchainStorage]
+
+
+* *Offchain indexing* is an *OPTIONAL SERVICE* that *ALLOWS THE RUNTIME TO WRITE DIRECTLY TO THE OFFCHAIN STORAGE independently from offchain workers*. The offchain index provides temporary storage for on-chain logic and complements the on-chain state.
+
+==== *OFFCHAIN INDEXING*
+
+In the context of a blockchain, storage is most often concerned with the on-chain state. However, on-chain state is expensive because it must be agreed upon and populated to multiple nodes in the network. Therefore, you shouldn't store historical or user-generated data—which grow indefinitely over time—using on-chain storage.
+
+To address the need to access historical or user-generated data, Substrate provides access to the offchain storage using offchain indexing. Offchain indexing allows the runtime to write directly to the offchain storage without using offchain worker threads. You can enable this functionality to persist data by starting a Substrate node with the --enable-offchain-indexing command-line option.
+
+Unlike offchain workers, offchain indexing populates the offchain storage every time a block is processed. By populating the data at every block, offchain indexing ensures that the data is always consistent and is exactly the same for every node running with indexing enabled.
+
+
+
+
+.About the OffchainStorage 
+
+OffchainStorage trait , defines a set of functions that can be used by the runtime to read and write data to the Offchain Database. 
+
+These functions include (among others):
+
+* get: This function allows the runtime to read a value from the Offchain Database. The key must be of type Vec<u8>, and the function returns an Option<Vec<u8>> that contains the value associated with the key if it exists in the database.
+
+* set: This function allows the runtime to write a value to the Offchain Database. The key and value must be of type Vec<u8>.
+
+* clear: This function allows the runtime to remove a key-value pair from the Offchain Database. The key must be of type Vec<u8>.
+
+By using these functions, the runtime can store and retrieve data from the Offchain Database without requiring an off-chain worker to perform the write operation. This can be useful for scenarios where the runtime needs to store or retrieve data quickly and does not require the full capabilities of an off-chain worker.
