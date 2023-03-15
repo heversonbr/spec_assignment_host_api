@@ -129,7 +129,7 @@ This function is called when generating the extern host functions that will be c
 Given all the previous information here I present the candidate solution for the API related to offchain index that is not yet documented. 
 The specification of the OffchainIndex API was written using the specification of the link:https://spec.polkadot.network/#sect-storage-api[Storage API - Appendix B.2] already in Host API Specification as a template.
 
-include::https://github.com/heversonbr/spec_assignment_host_api/blob/main/offchain_indexing.adoc[]
+include::offchain_indexing.adoc[Offchain Index API]
 
 
 
