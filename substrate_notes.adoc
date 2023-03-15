@@ -90,7 +90,8 @@ https://github.com/paritytech/substrate/blob/master/primitives/offchain/src/lib.
 https://github.com/paritytech/substrate/blob/master/client/db/src/offchain.rs[RocksDB-based offchain workers local storage.]
 
 
-* *Offchain storage* is storage that is local to a Substrate node and can be *accessed by* both *offchain workers and on-chain logic*:
+* *Offchain storage* is storage that is local to a Substrate node. You can access the data stored in the offchain storage using offchain worker threads that have read and write access or through the on-chain logic using offchain indexing.
+
 ** Offchain workers have both read and write access to offchain storage.
 ** *On-chain logic has write access through offchain indexing* but doesn't have read access. The offchain storage allows different worker threads to communicate with each other and to store user-specific or node-specific data that does not require consensus over the whole network.
 +

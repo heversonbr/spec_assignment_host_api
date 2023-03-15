@@ -1,7 +1,5 @@
 = Take Home Assignment: Extending Host APIs Spec
 
-Estimated time required: 3-4 hours
-
 == Description 
 
 The Polkadot Protocol utilizes a special *WASM runtime* that implements a large part of Polkadot's *core logic* in an upgradable format. This runtime is therefore provided with various functionalities by the Polkadot Host described by the so-called https://spec.polkadot.network/#chap-host-api[Host API].
@@ -12,101 +10,128 @@ TIP: Knowledge of procedural macros in rust might be useful for this task.
 
 NOTE: Along with the solution, we would love to read about your thought process and approaches taken in tackling the problem. The task is designed to be open-ended with a certain degree of uncertainty in the description, to reflect some of the challenges in Spec team. However, for any clarifications, please feel free to contact bhargav@web3.foundation or @bhargav:web3.foundation
 
-
+[#goals]
 == Identifying goals
 
-* extend the Offchain Index API (the API that provides functions to access the Offchain Database)
+* *Document* the Offchain Index API 
 * Substrate already contains few API related to _offchain index_ 
-** These are part of Substrate's _I/O host interface_ , and they are not yet documented in the https://spec.polkadot.network/[Spec]
-* Task: Identify these APIs that are not yet documented and write their spec.
-** use the same template as the rest of the Host API to do it
-
+** These are part of Substrate's _I/O host interface_ , and *they are not yet documented* in the https://spec.polkadot.network/[Spec]
+* *Task*: *Identify the API* that are *not yet documented* and *write their spec* using the Host API as template. 
 
 NOTE: At first sight it sounds more like identifying what was made in the code and trying to put it formally in the documentation. It sounds like the reverse order to me. As far I had understood so far the design definition should come from the research team, the specification defined from the design and then used by developers to implement. The description so far sounds like in the reverse path. Let me start some readings to clarify this. 
 
 === To clarify
 
-As far as I understood from our discussion other that. The specification team get the output from the research team and turns it into a specification to developers to make use of it to code the solutions. The main goal of this exercice (challenge) is to do the reverse path. In other words, look at the code and turn it into a specification. Is this correct ? 
+As far as I understood from our discussion other day, the specification team gets the output from the research team and turns it into a specification to developers. The main goal of this task is to do the reverse path. In other words, look at the code and turn it into a specification. Is that correct ? Is it the work the specification team actually does ?  
 
-== Steps 
+NOTE: This point was made clear when I talked with Bahargav by google-meet. 
 
-. Brief overview of Polkadot Protocol Specification by using the document published at https://spec.polkadot.network/
-.. Particularly check the doc to see how the Storage speficication is currently done: `Appendix B: Host API` and `B.2 B.2. Storage`.
-. Take a first look at Substrate documentation : https://docs.substrate.io/. Special attention at sessions `Substrate - Arquitecture` and `Substrate - Offchain operations`.
+== Steps taken. 
 
-.. 1st question raised : The archictecure description sounds a bit contradictory when It says that _*offchain indexing is* an optional *service* that allows the runtime to write directly to the offchain storage *independently from* offchain workers_. However, it seems that the `Offchain workers` can also access the `offchain indexing`. Not clear yet to me if it is a contradiction or a misunderstanding from my side. To be clarified as I read more about it. 
+. Brief overview of Polkadot link:https://spec.polkadot.network/[Protocol Specification]
+.. Particularly check the doc to see how the Storage speficication is currently defined at link:https://spec.polkadot.network/#sect-storage-api[Storage API - Appendix B: B.2 Storage].
+. Take a first look at link:https://docs.substrate.io/[Substrate documentation]: Special attention at sessions 
+.. `Substrate - Arquitecture`, and 
+.. `Substrate - Offchain operations`
 
-. Downloaded substrate code from  https://github.com/paritytech/substrate  
+. Downloaded substrate code from  link:https://github.com/paritytech/substrate[github]
 
 .. Look at the code, checking for api concerning offchain storage, special attention for `offchain indexing`. 
-... Some interesting pointer found and highlighed below at link:#code_checking[Code checking]
+... Some interesting pointer found and highlighed below at link:#codechecking[Code checking]
 
+. Check and download link:https://spec.polkadot.network/#sect-storage-api[Storage API - Appendix B: B.2 Storage] to use as a template
 
-. Check the Storage template for the Host API
-.. download template and adapt it to the `Offchain Index API`
+. Write the new `Offchain Index API` based on the template. Check  link:#solution[proposed solution] below. 
 
+. As shown below, I also discussed some points with Bhargav and tried to clarify them. I've tried to log most of the actions in this document. 
 
-
-[#code-checking]
+[#codechecking]
 == Code checking 
 
- 
-Possible definitions/declarations are found here. 
+Possible definitions are found here. This pointers I log while I'm still investigating the code. 
 
-- pub trait *OffchainIndex*: `substrate/primitives/io/src/lib.rs`
+- pub trait *OffchainIndex*: at link:https://github.com/paritytech/substrate/blob/master/primitives/io/src/lib.rs#L1185[substrate/primitives/io/src/lib.rs].
 
-- pub trait *OffchainStorage*: `substrate/primitives/core/src/offchain/mod.rs`
+- pub trait *Offchain*: Interface that provides functions to access the offchain functionality, also at link:https://github.com/paritytech/substrate/blob/master/primitives/io/src/lib.rs#L1207[substrate/primitives/io/src/lib.rs].
 
-- *offchain workers*: `substrate/client/offchain/src/lib.rs` and `substrate/primitives/core/src/offchain/mod.rs`
+- pub trait *OffchainStorage*: 
+link:https://github.com/paritytech/substrate/blob/master/primitives/core/src/offchain/mod.rs#L37[substrate/primitives/core/src/offchain/mod.rs]
 
-- The Substrate *externalities*. Provides access to the storage and to other registered extensions: `substrate/primitives/externalities/src/lib.rs`
+- *Offchain workers*: 
+`substrate/client/offchain/src/lib.rs` and `substrate/primitives/core/src/offchain/mod.rs`
+
+- The Substrate *Externalities*. Provides access to the storage and to other registered extensions `substrate/primitives/externalities/src/lib.rs`
 
 - offchain database (*OffchainDbExt*): `substrate/primitives/core/src/offchain/mod.rs`
                             
 
 
-== Main finding: OffchainIndex interface 
+== Main findings
 
-- at: I/O host interface for substrate runtime 
+The API concerning the `Offchain Index` that is not yet documented in the Host API is defined by the trait `OffchainIndex` at:  link:https://github.com/paritytech/substrate/blob/master/primitives/io/src/lib.rs[substrate/primitives/io/src/lib.rs]
 
+[source, rust]
 ----
-/// Interface that provides functions to access the Offchain DB.
 #[runtime_interface]
 pub trait OffchainIndex {
-	/// Write a key value pair to the Offchain DB database in a buffered fashion.
+	
 	fn set(&mut self, key: &[u8], value: &[u8]) {
 		self.set_offchain_storage(key, Some(value));
 	}
 
-	/// Remove a key and its associated value from the Offchain DB.
 	fn clear(&mut self, key: &[u8]) {
 		self.set_offchain_storage(key, None);
 	}
 }
 ----
 
-
-== Questions:
-
-
-- is the main objective mentioned above right? 
-- is it only specifying the functions declared in the OffchainIndex trait ?  (set and clear)
-
-- why the `Storage trait` functions are declared in the code as (for instance) 'set' and 'get', and in the specification the same functions are called `ext_storage_set` and `ext_storage_get` ?  Why this 'ext_storage' prefix ? 
-
-- in the declaration of functions in the `Storage section B.2`, the functions have a `versionX - prototype` information. even though their code in the `Storage trait` does not mention 'versions'. is it a convention always declaring a version? if so, where it is defined this 'version' convention? 
-
-- the 'storage specification' at B2. declares the key and value parameters as 'Runtime pointer-size type' which is an 'unsigned 64-bit integer'. However in the code it is defined as a 'u8' data type (8-bit unsigned integer). which one is right ? the 'OffchainIndex' trait also uses u8 in the code. 
+IMPORTANT: It is important to note that, the *#[runtime_interface]* attribute, used in this trait declaration, identifies the Rust procedural macro used for for generating the runtime interface. The implementation of this macro can be checked here: link:https://github.com/paritytech/substrate/blob/master/primitives/runtime-interface/proc-macro/src/runtime_interface/mod.rs#L44[substrate/primitives/runtime-interface/proc-macro/src/lib.rs]
 
 
-== Candidate Solution 
+Other relevant traits (and crate): 
 
+- link:https://github.com/paritytech/substrate/blob/ae83a672f2bbe6a4f7391f6a5b2b6fd7ad4f8651/primitives/io/src/lib.rs#L1207[*trait Offchain*]: Interface that provides functions to access the offchain functionality. These functions are being made available to the runtime and are called by the runtime.
+
+- link:https://github.com/paritytech/substrate/blob/ae83a672f2bbe6a4f7391f6a5b2b6fd7ad4f8651/primitives/io/src/lib.rs#L126[*trait Storage*]: Interface for accessing the storage from within the runtime.
+
+- link:https://github.com/paritytech/substrate/blob/master/primitives/runtime-interface/src/lib.rs[*Substrate runtime interface*]:  probably the most important to give a deeper understanding of how the interface between a Substrate runtime and a Substrate node work (as far I can currently see).  
+
+
+
+== Questions raised and potential answers
+
+Few raised questions (and exchanged with Bhargav). The `NOTE` below describe the output concerning each question after the chat with Bhargav. 
+
+- The main objectives mentioned above in link:#goals[Identifying goals] are correct -> Write a spec for the API exposed by the  `OffchainIndex` trait.
+
+NOTE: Goal confirmed with Bhargav. 
+
+While writting the specification for the `Offchain index` API, taking as example the already written specification for the link:https://spec.polkadot.network/#sect-storage-api[Host API Storage], other questions have emerged:  
+
+- In the declaration of functions in the  link:https://spec.polkadot.network/#sect-storage-api[Host API Storage Section B.2], the functions have prefixes like `versionX - prototype`. Even though, the corresponding code in the `Storage trait` does not mention any versioning. (i.e., https://spec.polkadot.network/#id-version-1-prototype[Check here]) and (https://github.com/paritytech/substrate/blob/master/primitives/io/src/lib.rs#L147[and here]) to see the point. Is that a convention? 
+
+NOTE: During the chat Bhargav confirmed that there was a convention for the specification while naming Interfaces functions. After the chat, I checked a little bit more in the code to identify possible documentation of it. I started by reading the  (https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html#runtime-api-trait-versioning[runtime-api-trait-versioning]) which says that by default each api function has a version annotation. If no version annotation is provided or there's only one version of the function it is considered at version 1 (even if there's no annotation). This default VersionAttribute is in fact implemented https://github.com/paritytech/substrate/blob/ae83a672f2bbe6a4f7391f6a5b2b6fd7ad4f8651/primitives/runtime-interface/proc-macro/src/utils.rs#L304[here] using the link:https://github.com/paritytech/substrate/blob/ae83a672f2bbe6a4f7391f6a5b2b6fd7ad4f8651/primitives/runtime-interface/proc-macro/src/utils.rs#L292[struct VersionAttribute]
+
+- Another intriguing point is: The storage specification at link:https://spec.polkadot.network/#sect-storage-api[Host API Storage Section B.2] declares `key` and `value` parameters as _Runtime pointer-size_ type which is an unsigned 64-bit integer. However in the code both parameters are defined as 'u8' data type (8-bit unsigned integer). Is that an inconsistency or not ? I ask that because the 'OffchainIndex' trait definition also uses u8 type in the the code. There must be something I didn't get yet here. 
+
+NOTE: While discussing with Bhargav, he pointed out that is definitely not an inconsistency and it is an interesting concerning the implementation/specification that deserves a special attention. His tip was to think about the WASM and RUST relationship in the runtime. I kept looking at it to catch more details to clarify this point. I think the answer comes from the fact the functions will be actually called from the wasm substrate runtime into the substrate node. As clearly pointed in link:https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/#using-a-type-in-a-runtime-interface[Using a type in a runtime interface] any type used in the runtime interface, either as an argument or a return value, must implement the https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/trait.RIType.html[RIType].
+The https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/#ffi-type-and-conversion[table] shows how values of types are passed between the wasm and the host side and how they will be converted. This explains why we have our `&[u8]` type in the code being converted into the FFI `u64` type in the API specification. As far as I understood the procedural macro `runtime_interface` converts the arguments and values to the corresponding FFI representation using https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.IntoValue.html[sp_wasm_interface::IntoValue] and https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.TryFromValue.html[sp_wasm_interface::TryFromValue]. 
+
+- Another point that took my attention was: Why the `Storage trait` functions are declared in the code as 'set' and 'get and the same functions are declared as `ext_storage_set` and `ext_storage_get` in the specification?  Why this 'ext_storage' prefix? Is it just a convertion or something else ?  
+
+NOTE: Bhargav mentioned that would have a specific meaning and understanding that would be part of the exercise. At first glimpse my guess is that the `ext_storage_` prefix is used to distinguish these functions from the wasm runtime and the node substrate that may have similar names. I kept looking at it and I realized the following. The `utils` crate used by the `runtime_interface` procedural macro has a function called link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/utils.rs#L200[create_host_function_ident] that parses the name of the function in the following format `ext_TRAIT_NAME_FUNCTION_NAME_version_VERSION`.
+This function is called when generating the extern host functions that will be called on the host side from the Wasm executor. This explains why we have the `ext_storage` prefix for the trait `Storage` and why we will have the `ext_offchain_index_` prefix for the especification of the `OffchainIndex` trait. 
+
+
+[#solution]
+== Solution 
+
+Given all the previous information here I present the candidate solution for the API related to offchain index that is not yet documented. 
+The specification of the OffchainIndex API was written using the specification of the link:https://spec.polkadot.network/#sect-storage-api[Storage API - Appendix B.2] already in Host API Specification as a template.
 
 include::offchain_indexing.adoc[]
 
+== Conclusion
 
-
-== Appendix
-
-
-include::substrate_notes.adoc[]
+With this I conclude the exercise. 
+As the deadline to end it was set to Friday 17th, I may still add few points here mentioning what were the difficulties or problems faced during the execution of the task.

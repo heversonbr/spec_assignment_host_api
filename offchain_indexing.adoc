@@ -1,37 +1,36 @@
 
 [#sect-offchain-index-api]
-=== Offchain Indexing
+=== Offchain Indexing API
 
 Interface that provides functions to access the Offchain DB through offchain indexing.
 
 
 [#sect-offchain-index-set]
 ==== `ext_offchain_index_set`
-Sets the value under a given key into the Offchain DB database in a buffered fashion.
+Write a key value pair to the Offchain DB database in a buffered fashion.
 
 ===== Version 1 - Prototype
 ----
 (func $ext_offchain_index_set_version_1
-	(param $key u8) (param $value u8))
+	(param $key i64) (param $value i64))
 ----
 
 Arguments::
-* `key`: a pointer-size (<<defn-runtime-pointer-size>>) containing the key.
-* `value`: a pointer-size (<<defn-runtime-pointer-size>>) containing the
+* `key`: a pointer-size (link:https://spec.polkadot.network/#defn-runtime-pointer-size[Definition 203]) containing the key.
+* `value`: a pointer-size (link:https://spec.polkadot.network/#defn-runtime-pointer-size[Definition 203]) containing the
 value.
 
 
 [#sect-offchain-index-clear]
 ==== `ext_offchain_index_clear`
 
-Clears the storage of the given key and its associated value from the Offchain DB.
-//// Non-existent entries are silently ignored. ////
+Remove a key and its associated value from the Offchain DB.
 
 ===== Version 1 - Prototype
 ----
 (func $ext_offchain_index_clear_version_1
-	(param $key_data u8))
+	(param $key_data i64))
 ----
 
 Arguments::
-* `key`: a pointer-size (<<defn-runtime-pointer-size>>) containing the key.
+* `key`: a pointer-size (link:https://spec.polkadot.network/#defn-runtime-pointer-size[Definition 203]) containing the key.
