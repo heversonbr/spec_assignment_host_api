@@ -1,4 +1,6 @@
 = Take Home Assignment: Extending Host APIs Spec
+:toc:
+
 
 == Description 
 
@@ -26,7 +28,8 @@ As far as I understood from our discussion other day, the specification team get
 
 NOTE: This point was made clear when I talked with Bahargav by google-meet. 
 
-== Steps taken. 
+[#stepstaken]
+== Steps taken
 
 . Brief overview of Polkadot link:https://spec.polkadot.network/[Protocol Specification]
 .. Particularly check the doc to see how the Storage speficication is currently defined at link:https://spec.polkadot.network/#sect-storage-api[Storage API - Appendix B: B.2 Storage].
@@ -64,8 +67,7 @@ link:https://github.com/paritytech/substrate/blob/master/primitives/core/src/off
 
 - offchain database (*OffchainDbExt*): `substrate/primitives/core/src/offchain/mod.rs`
                             
-
-
+[#mainfinding]
 == Main findings
 
 The API concerning the `Offchain Index` that is not yet documented in the Host API is defined by the trait `OffchainIndex` at:  link:https://github.com/paritytech/substrate/blob/master/primitives/io/src/lib.rs[substrate/primitives/io/src/lib.rs]
@@ -97,7 +99,7 @@ Other relevant traits (and crate):
 - link:https://github.com/paritytech/substrate/blob/master/primitives/runtime-interface/src/lib.rs[*Substrate runtime interface*]:  probably the most important to give a deeper understanding of how the interface between a Substrate runtime and a Substrate node work (as far I can currently see).  
 
 
-
+[#qanda]
 == Questions raised and potential answers
 
 Few raised questions (and exchanged with Bhargav). The `NOTE` below describe the output concerning each question after the chat with Bhargav. 
@@ -115,11 +117,11 @@ NOTE: During the chat Bhargav confirmed that there was a convention for the spec
 - Another intriguing point is: The storage specification at link:https://spec.polkadot.network/#sect-storage-api[Host API Storage Section B.2] declares `key` and `value` parameters as _Runtime pointer-size_ type which is an unsigned 64-bit integer. However in the code both parameters are defined as 'u8' data type (8-bit unsigned integer). Is that an inconsistency or not ? I ask that because the 'OffchainIndex' trait definition also uses u8 type in the the code. There must be something I didn't get yet here. 
 
 NOTE: While discussing with Bhargav, he pointed out that is definitely not an inconsistency and it is an interesting concerning the implementation/specification that deserves a special attention. His tip was to think about the WASM and RUST relationship in the runtime. I kept looking at it to catch more details to clarify this point. I think the answer comes from the fact the functions will be actually called from the wasm substrate runtime into the substrate node. As clearly pointed in link:https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/#using-a-type-in-a-runtime-interface[Using a type in a runtime interface] any type used in the runtime interface, either as an argument or a return value, must implement the https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/trait.RIType.html[RIType].
-The https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/#ffi-type-and-conversion[table] shows how values of types are passed between the wasm and the host side and how they will be converted. This explains why we have our `&[u8]` type in the code being converted into the FFI `u64` type in the API specification. As far as I understood the procedural macro `runtime_interface` converts the arguments and values to the corresponding FFI representation using https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.IntoValue.html[sp_wasm_interface::IntoValue] and https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.TryFromValue.html[sp_wasm_interface::TryFromValue]. 
+The https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/#ffi-type-and-conversion[table] shows how values of types are passed between the wasm and the host side and how they will be converted. This explains why we have our `&[u8]` type in the code being converted into the FFI `u64` type in the API specification. As far as I understood the link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/lib.rs#L77[runtime_interface procedural macro] converts the arguments and values to the corresponding FFI representation using https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.IntoValue.html[sp_wasm_interface::IntoValue] and https://docs.rs/sp-wasm-interface/11.0.0/sp_wasm_interface/trait.TryFromValue.html[sp_wasm_interface::TryFromValue]. 
 
 - Another point that took my attention was: Why the `Storage trait` functions are declared in the code as 'set' and 'get and the same functions are declared as `ext_storage_set` and `ext_storage_get` in the specification?  Why this 'ext_storage' prefix? Is it just a convertion or something else ?  
 
-NOTE: Bhargav mentioned that would have a specific meaning and understanding that would be part of the exercise. At first glimpse my guess is that the `ext_storage_` prefix is used to distinguish these functions from the wasm runtime and the node substrate that may have similar names. I kept looking at it and I realized the following. The `utils` crate used by the `runtime_interface` procedural macro has a function called link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/utils.rs#L200[create_host_function_ident] that parses the name of the function in the following format `ext_TRAIT_NAME_FUNCTION_NAME_version_VERSION`.
+NOTE: Bhargav mentioned that would have a specific meaning and understanding that would be part of the exercise. At first glimpse my guess is that the `ext_storage_` prefix is used to distinguish these functions from the wasm runtime and the node substrate that may have similar names. I kept looking at it and I realized the following. The link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/utils.rs[utils crate] used by the link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/lib.rs#L77[runtime_interface procedural macro] has a function called link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/utils.rs#L200[create_host_function_ident] that parses the name of the function in the following format `ext_TRAIT_NAME_FUNCTION_NAME_version_VERSION`.
 This function is called when generating the extern host functions that will be called on the host side from the Wasm executor. This explains why we have the `ext_storage` prefix for the trait `Storage` and why we will have the `ext_offchain_index_` prefix for the especification of the `OffchainIndex` trait. 
 
 
@@ -132,8 +134,11 @@ The specification of the OffchainIndex API was written using the specification o
 include::offchain_indexing.adoc[Offchain Index API]
 
 
-
 == Conclusion
 
 With this I conclude the exercise. 
-As the deadline to end it was set to Friday 17th, I may still add few points here mentioning what were the difficulties or problems faced during the execution of the task.
+As previously described in link:#stepstaken[Steps Taken], 
+the approach used to solve the task can be summarized as examining existing API specifications and using it as a reference to create the new API spec. The first step was to make sure I had enough understanding of the substrate architecture in order to identify the Offchain operations, in special the Offchain Indexing, in order to identify the API and its functions not yet documented in the HOST API. 
+By using this approach also helps ensure that the proposed API spec if conform to standards and conventions currently used by the HOST API specification. 
+
+One of the critical points to be understood in the code was definitly the use of the procedural macros in the context of the substrate runtime interface. Personally, I had only used declarative macros before starting this task and I had to review the concept and check some examples in order to make it clear to identify where they were used in the context of the runtime interface link:https://github.com/paritytech/substrate/blob/ba87188cce8c0a11c9542d7363cd5ddd46db2740/primitives/runtime-interface/proc-macro/src/lib.rs#L77[runtime_interface]. 
